@@ -15,7 +15,7 @@ def load_model():
     global model
     if model is None:
         model = SopranoTTS(
-            backend="auto",
+            backend="transformers",
             device=DEVICE,
             cache_size_mb=100,
             decoder_batch_size=1,
