@@ -3,7 +3,7 @@ module.exports = {
   version: "5.0",
   title: "Soprano TTS",
   description: "Instant, Ultra-Realistic Text-to-Speech",
-  icon: "icon.png",
+  icon: "icon.jpg",
   menu: async (kernel, info) => {
     let installed = info.exists("env")
     let running = {
