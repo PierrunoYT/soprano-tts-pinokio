@@ -15,7 +15,7 @@ A Windows-optimized setup for [Soprano TTS](https://github.com/ekwek1/soprano), 
 - **Windows** (Linux also supported)
 - **CUDA-enabled GPU** (CPU support coming soon)
 - **Python 3.8+**
-- **CUDA 12.6 drivers** installed
+- **CUDA 12.8 drivers** installed
 
 ## Quick Start (Pinokio)
 
@@ -31,24 +31,7 @@ Simply install via Pinokio - it will automatically:
 pip install soprano-tts
 
 # Install PyTorch with CUDA support
-pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cu126
-```
-
-### Verify Installation
-
-```bash
-python check_cuda.py
-```
-
-This checks:
-- PyTorch installation
-- CUDA availability
-- Soprano TTS installation
-
-### Run Examples
-
-```bash
-python example.py
+pip install torch==2.7.0 --index-url https://download.pytorch.org/whl/cu128
 ```
 
 ## Usage Examples
@@ -148,7 +131,7 @@ model = SopranoTTS(
 3. Reinstall PyTorch with CUDA support:
    ```bash
    pip uninstall -y torch
-   pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cu126
+   pip install torch==2.7.0 --index-url https://download.pytorch.org/whl/cu128
    ```
 
 ### LMDeploy Installation Fails
@@ -168,10 +151,13 @@ SopranoTTS-Pinokio/
 ├── pinokio.js          # Pinokio app configuration
 ├── install.js          # Installation script
 ├── start.js            # Start script
+├── update.js           # Update script
+├── reset.js            # Reset script
+├── link.js             # Disk deduplication script
 ├── torch.js            # PyTorch installation handler
+├── app.py              # Gradio web UI
 ├── requirements.txt    # Python dependencies
-├── check_cuda.py       # System verification script
-├── example.py          # Usage examples
+├── icon.jpg            # App icon
 └── README.md           # This file
 ```
 
