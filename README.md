@@ -27,11 +27,15 @@ Simply install via Pinokio - it will automatically:
 ### Manual Installation
 
 ```bash
-# Install dependencies
-pip install soprano-tts
+cd app
 
-# Install PyTorch with CUDA support
+# Install dependencies
+pip install -r requirements.txt
+
+# Install PyTorch with CUDA support (adjust index for your platform)
 pip install torch==2.7.0 --index-url https://download.pytorch.org/whl/cu128
+
+python app.py
 ```
 
 ## Usage Examples
@@ -148,6 +152,9 @@ The scripts include Windows encoding fixes. If you still encounter issues, ensur
 
 ```
 SopranoTTS-Pinokio/
+├── app/
+│   ├── app.py              # Gradio web UI
+│   └── requirements.txt    # Python dependencies
 ├── pinokio.js          # Pinokio app configuration
 ├── install.js          # Installation script
 ├── start.js            # Start script
@@ -155,8 +162,6 @@ SopranoTTS-Pinokio/
 ├── reset.js            # Reset script
 ├── link.js             # Disk deduplication script
 ├── torch.js            # PyTorch installation handler
-├── app.py              # Gradio web UI
-├── requirements.txt    # Python dependencies
 ├── icon.jpg            # App icon
 └── README.md           # This file
 ```

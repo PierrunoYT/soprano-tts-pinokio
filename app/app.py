@@ -120,4 +120,4 @@ with gr.Blocks(title="Soprano TTS") as demo:
 
 if __name__ == "__main__":
     demo.queue()
-    demo.launch()
+    demo.launch(server_name="127.0.0.1")
