@@ -10,11 +10,11 @@ gradio==5.50
 
 # Additional dependencies (installed automatically with soprano-tts)
 # Listed here for reference:
-# transformers>=4.30.0
-# numpy>=1.24.0
-# scipy>=1.10.0
-# soundfile>=0.12.0
-# torchaudio>=2.0.0
+# transformers>=4.51.0
+# numpy
+# scipy
+# accelerate
+# huggingface_hub
 
 # Optional: LMDeploy for faster inference (may not install on all systems)
 # lmdeploy>=0.2.0
