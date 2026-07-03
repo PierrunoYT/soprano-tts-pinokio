@@ -14,7 +14,7 @@ A Windows-optimized setup for [Soprano TTS](https://github.com/ekwek1/soprano), 
 
 - **Windows** (Linux also supported)
 - **CUDA-enabled GPU** (CPU support coming soon)
-- **Python 3.8+**
+- **Python 3.10+**
 - **CUDA 12.8 drivers** installed
 
 ## Quick Start (Pinokio)

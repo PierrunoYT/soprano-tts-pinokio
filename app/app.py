@@ -40,7 +40,8 @@ def tts_generate(text, temperature, top_p, repetition_penalty):
     )
 
     audio_np = out.cpu().numpy()
-    return (SAMPLE_RATE, audio_np), audio_np
+    audio_int16 = (audio_np * 32767).astype(np.int16)
+    return (SAMPLE_RATE, audio_int16), audio_int16
 
 
 def save_audio(state):
