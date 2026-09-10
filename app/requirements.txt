@@ -7,16 +7,5 @@ gradio==5.50
 transformers>=4.51.0,<5
 numpy
 
-# Note: PyTorch is installed separately via torch.js with CUDA support
-# Do not add torch here - it will be handled by the Pinokio installer
-
-# Additional dependencies (installed automatically with soprano-tts)
-# Listed here for reference:
-# transformers>=4.51.0
-# numpy
-# scipy
-# accelerate
-# huggingface_hub
-
-# Optional: LMDeploy for faster inference (may not install on all systems)
-# lmdeploy>=0.2.0
+# Soprano depends on PyTorch; torch.js then selects the platform-specific build.
+# Keep the Transformers major version within the integration tested by this UI.

@@ -1,222 +1,159 @@
-# Soprano TTS - Pinokio Setup
+# Soprano TTS for Pinokio
 
-A Windows-optimized setup for [Soprano TTS](https://github.com/ekwek1/soprano), an ultra-lightweight, open-source text-to-speech model designed for real-time, high-fidelity speech synthesis.
+A local Gradio interface for [Soprano TTS](https://github.com/ekwek1/soprano).
+Enter English text, adjust sampling settings, and generate 32 kHz WAV audio.
+This interface uses the Transformers backend and returns complete clips;
+upstream streaming benchmarks do not describe this UI's latency.
 
-## Overview
+## Install and run
 
-**Soprano** is an incredibly fast TTS model with:
-- **Only 80M parameters** (under 1 GB VRAM usage)
-- **~2000× real-time factor** - generates 10 hours of audio in under 20 seconds
-- **<15 ms latency** for streaming synthesis
-- **32 kHz high-fidelity audio** output
+1. Install this repository in Pinokio and select **Install**.
+2. Once installation checks finish, select **Start**, then **Open Web UI**.
+3. Enter text and select **Generate**. Use the audio player's download control
+   to save the WAV file.
 
-## Requirements
+The first generation downloads model weights from Hugging Face. Later requests
+reuse the loaded model. Empty input clears the player without loading the model.
+The server listens on `127.0.0.1`; Gradio chooses an available port. Use the URL
+shown in the terminal when connecting a client.
 
-- **Windows** (Linux also supported)
-- **CUDA-enabled GPU** (CPU support coming soon)
-- **Python 3.10+**
-- **CUDA 12.8 drivers** installed
+The installer creates a Python 3.11 environment under `app/env`, installs the
+dependencies, selects a PyTorch build, and checks dependency consistency and app
+imports. Only then is the environment marked ready. Existing installations made
+before this readiness check need to run **Install** once again.
 
-## Quick Start (Pinokio)
+### Hardware
 
-Simply install via Pinokio - it will automatically:
-- Set up the Python environment
-- Install PyTorch with CUDA support (via torch.js)
-- Install Soprano TTS and all dependencies
+- Windows and Linux NVIDIA systems use the CUDA 12.8 PyTorch build and need a
+  compatible NVIDIA driver. The app falls back to CPU if CUDA is unavailable.
+- Windows AMD systems and systems without a supported GPU use CPU inference.
+  DirectML is not used by this app.
+- Linux AMD installation selects ROCm 6.3. Hardware and driver compatibility are
+  required; upstream still lists ROCm support as unfinished. This route has not
+  been validated here.
+- The macOS installer targets Apple Silicon, using CPU inference in this UI.
+  Intel macOS is not supported by the pinned PyTorch 2.7 wheels.
 
-### Manual Installation
+See the [upstream installation guide](https://github.com/ekwek1/soprano#installation)
+for model and hardware details. CPU inference is supported; a CUDA GPU is optional.
 
-```bash
+### Maintenance
+
+- **Update** fast-forwards the launcher repository and reruns installation.
+  If Git reports divergent history, resolve it manually before retrying.
+- **Install** repairs an incomplete environment without deleting it.
+- **Reset** removes only `app/env`. Reinstall afterward. It does not remove the
+  shared Hugging Face model cache or files you have downloaded.
+- **Save Disk Space** invokes Pinokio's virtual-environment deduplication.
+
+Generated audio is stored in Gradio's cache, with hourly cleanup of files older
+than one hour. Download clips you want to keep.
+
+### Manual installation
+
+From the repository root, using Python 3.11:
+
+```sh
+python -m venv app/env
+# Windows PowerShell:
+app/env/Scripts/Activate.ps1
+# Linux/macOS instead: source app/env/bin/activate
+python -m pip install uv
+uv pip install -r app/requirements.txt
+
+# CPU build (for NVIDIA, replace /cpu with /cu128):
+uv pip install --reinstall-package torch --reinstall-package torchvision --reinstall-package torchaudio torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 --index-url https://download.pytorch.org/whl/cpu
+uv pip check
 cd app
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install PyTorch with CUDA support (adjust index for your platform)
-pip install torch==2.7.0 --index-url https://download.pytorch.org/whl/cu128
-
 python app.py
 ```
 
-## Usage Examples
+Manual installation does not create Pinokio's readiness marker. Use **Install**
+if you want to manage that environment through Pinokio.
 
-### Basic Inference
+## API
 
-```python
-from soprano import SopranoTTS
+The running UI exposes a queued Gradio endpoint named `/generate`, with inputs in
+this order: `text`, `temperature` (0–1), `top_p` (0.01–1), and
+`repetition_penalty` (1–2). Requests share a single inference queue. The response
+contains one audio file; blank text returns no audio. There is no separate
+download API or session-state argument.
 
-# Initialize model
-model = SopranoTTS(
-    backend='auto',
-    device='cuda',
-    cache_size_mb=10,
-    decoder_batch_size=1
-)
+Replace `http://127.0.0.1:7860` in these examples with the running server URL.
 
-# Generate audio
-audio = model.infer("Soprano is an extremely lightweight text to speech model.")
-```
+### Python
 
-### Save to File
+Install `gradio_client`, then:
 
 ```python
-model.infer("Your text here.", "output.wav")
+from gradio_client import Client
+
+client = Client("http://127.0.0.1:7860")
+audio_path = client.predict("Hello from Soprano.", 0.3, 0.95, 1.2,
+                            api_name="/generate")
+print(audio_path)  # Local WAV downloaded by the client
 ```
 
-### Custom Sampling Parameters
+### JavaScript
 
-```python
-audio = model.infer(
-    "Your text here.",
-    temperature=0.3,
-    top_p=0.95,
-    repetition_penalty=1.2,
-)
+Install `@gradio/client`, then:
+
+```javascript
+import { Client } from "@gradio/client";
+
+const client = await Client.connect("http://127.0.0.1:7860");
+const result = await client.predict("/generate", [
+  "Hello from Soprano.", 0.3, 0.95, 1.2
+]);
+console.log(result.data[0]); // Audio file metadata, including its URL
 ```
 
-### Streaming Inference (Ultra-Low Latency)
+### curl
 
-```python
-import torch
+Submit a request (POSIX shell syntax):
 
-stream = model.infer_stream("Your text here.", chunk_size=1)
-
-chunks = []
-for chunk in stream:
-    chunks.append(chunk)  # First chunk arrives in <15 ms!
-
-audio = torch.cat(chunks)
+```sh
+curl -X POST http://127.0.0.1:7860/gradio_api/call/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"data":["Hello from Soprano.",0.3,0.95,1.2]}'
 ```
 
-### Batched Inference
+Copy the returned `event_id`, then read the result stream:
 
-```python
-texts = [
-    "First sentence.",
-    "Second sentence.",
-    "Third sentence."
-]
-
-batch_output = model.infer_batch(texts)
-
-# Save to directory
-batch_output = model.infer_batch(texts, "/output_dir")
+```sh
+curl -N http://127.0.0.1:7860/gradio_api/call/generate/EVENT_ID
 ```
 
-## Performance Tips
-
-### Increase Speed
-Adjust these parameters for faster inference (at the cost of higher memory usage):
-
-```python
-model = SopranoTTS(
-    backend='auto',
-    device='cuda',
-    cache_size_mb=20,        # Increase from 10
-    decoder_batch_size=2     # Increase from 1
-)
-```
-
-### Best Practices
-- Keep sentences between **2-15 seconds** long
-- Convert numbers to words: `1+1` → `one plus one`
-- Use proper grammar and contractions
-- Avoid multiple spaces or special characters
-- Regenerate if results are unsatisfactory
+The `complete` event contains audio metadata. Download its `url` using
+`curl -L 'AUDIO_URL' --output speech.wav`.
 
 ## Troubleshooting
 
-### CUDA Not Available
-1. Verify CUDA drivers: `nvidia-smi`
-2. Check PyTorch CUDA access:
-   ```bash
-   python -c "import torch; print(torch.cuda.is_available())"
-   ```
-3. Reinstall PyTorch with CUDA support:
-   ```bash
-   pip uninstall -y torch
-   pip install torch==2.7.0 --index-url https://download.pytorch.org/whl/cu128
-   ```
+- **Install still appears:** inspect the installation terminal for dependency or
+  import errors, then retry **Install**. An environment directory alone is not
+  proof of successful installation.
+- **Unexpected CPU inference:** check `torch.cuda.is_available()` inside
+  `app/env`. Verify the NVIDIA driver and rerun **Install** to restore the
+  platform-specific PyTorch build.
+- **First generation fails:** check the terminal and connectivity to Hugging
+  Face. Model weights are downloaded lazily, not during installation.
+- **Poor pronunciation:** spell out numbers or symbols and use clear English
+  sentences. Sampling settings can change results. This UI has no voice cloning
+  or language-selection controls.
 
-### LMDeploy Installation Fails
-Use the transformers backend (slower but more compatible):
+## Development checks
 
-```python
-model = SopranoTTS(backend='transformers', device='cuda')
+```sh
+node --test tests/launcher.test.js
+python -m unittest discover -s tests -v
 ```
 
-### Unicode/Encoding Errors
-The scripts include Windows encoding fixes. If you still encounter issues, ensure your terminal supports UTF-8.
+Audio unit tests require NumPy and mock the model. UI integration tests require
+the app dependencies and use deterministic audio without downloading weights.
+Launcher tests cover failed-install recovery, maintenance menus, URL capture,
+and platform routing. GPU inference and Pinokio execution require separate
+runtime validation on the target hardware.
 
-## Project Structure
-
-```
-SopranoTTS-Pinokio/
-├── app/
-│   ├── app.py              # Gradio web UI
-│   └── requirements.txt    # Python dependencies
-├── pinokio.js          # Pinokio app configuration
-├── install.js          # Installation script
-├── start.js            # Start script
-├── update.js           # Update script
-├── reset.js            # Reset script
-├── link.js             # Disk deduplication script
-├── torch.js            # PyTorch installation handler
-├── icon.jpg            # App icon
-└── README.md           # This file
-```
-
-## Key Features
-
-### 1. High-Fidelity 32 kHz Audio
-Soprano synthesizes speech at 32 kHz, delivering quality that is perceptually indistinguishable from 44.1/48 kHz audio.
-
-### 2. Vocoder-Based Neural Decoder
-Uses a Vocos architecture for orders-of-magnitude faster waveform generation compared to diffusion models.
-
-### 3. Seamless Streaming
-Leverages the decoder's finite receptive field to losslessly stream audio with ultra-low latency (<15 ms).
-
-### 4. State-of-the-Art Neural Audio Codec
-Compresses audio to ~15 tokens/sec at just 0.2 kbps without sacrificing quality.
-
-### 5. Sentence-Level Streaming
-Each sentence is generated independently, enabling effectively infinite generation length.
-
-## Limitations
-
-- Trained on 1000 hours of audio (~100× less than other TTS models)
-- No voice cloning yet
-- No style control yet
-- No multilingual support yet
-- Requires CUDA GPU (CPU support coming soon)
-
-## Roadmap
-
-- [x] Model and inference code
-- [x] Seamless streaming
-- [x] Batched inference
-- [ ] Command-line interface (CLI)
-- [ ] Server / API inference
-- [ ] Additional LLM backends
-- [ ] CPU support
-- [ ] Voice cloning
-- [ ] Multilingual support
-
-## Links
-
-- **Official Repository**: https://github.com/ekwek1/soprano
-- **HuggingFace Model**: https://huggingface.co/ekwek/Soprano-80M
-- **License**: Apache-2.0
-
-## Acknowledgements
-
-Soprano uses and/or is inspired by:
-- [Vocos](https://github.com/gemelo-ai/vocos)
-- [XTTS](https://github.com/coqui-ai/TTS)
-- [LMDeploy](https://github.com/InternLM/lmdeploy)
-
-## License
-
-This project is licensed under the **Apache-2.0** license.
+Soprano is distributed under the
+[upstream Apache-2.0 license](https://github.com/ekwek1/soprano/blob/main/LICENSE).
 

@@ -61,12 +61,11 @@ with gr.Blocks(title="Soprano TTS", delete_cache=(3600, 3600)) as demo:
         with gr.Column():
             gr.Markdown(
                 "# Soprano TTS\n\n"
-                "Soprano is an ultra-lightweight, open-source text-to-speech (TTS) model designed for "
-                "real-time, high-fidelity speech synthesis at unprecedented speed. Soprano can achieve "
-                "**<15 ms streaming latency** and up to **2000x real-time generation**, all while being "
-                "easy to deploy at **<1 GB VRAM usage**.\n\n"
+                "Generate 32 kHz speech locally from English text. The first generation downloads "
+                "the model; later requests reuse it. This interface uses the Transformers backend "
+                "and returns complete audio clips. Download a WAV using the audio player's download control.\n\n"
                 "- GitHub: https://github.com/ekwek1/soprano\n"
-                "- Model: https://huggingface.co/ekwek/Soprano-80M"
+                "- Model: https://huggingface.co/ekwek/Soprano-1.1-80M"
             )
 
             text_in = gr.Textbox(
