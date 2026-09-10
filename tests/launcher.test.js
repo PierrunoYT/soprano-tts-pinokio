@@ -70,12 +70,15 @@ test('each supported platform selects exactly one matching torch build', () => {
       assert.equal(selected.length, 1, `${platform}/${gpu}`)
       const commands = [].concat(selected[0].params.message).join('\n')
       assert.ok(!commands.includes('torch-directml'))
+      // Reinstall only the platform wheels: reinstalling their dependencies can
+      // upgrade Pillow past Gradio's upper bound and break a clean installation.
+      assert.ok(!/--reinstall\s/.test(commands))
       if (platform === 'win32' && gpu === 'amd') {
         assert.ok(commands.includes('/whl/cpu'))
       }
       if (platform !== 'darwin' && gpu === 'nvidia') {
         assert.ok(commands.includes('/whl/cu128'))
-        assert.ok(commands.includes('--reinstall'))
+        assert.ok(commands.includes('--reinstall-package torch'))
       }
     }
   }
