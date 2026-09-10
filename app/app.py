@@ -2,9 +2,7 @@ import gradio as gr
 import torch
 import numpy as np
 from soprano import SopranoTTS
-from scipy.io.wavfile import write as wav_write
-import tempfile
-import os
+import math
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {DEVICE}")
@@ -27,34 +25,37 @@ SAMPLE_RATE = 32000
 
 
 def tts_generate(text, temperature, top_p, repetition_penalty):
+    if text is None or (isinstance(text, str) and not text.strip()):
+        return None
+    if not isinstance(text, str):
+        raise gr.Error("Input text must be a string.")
+    for name, value, minimum, maximum in (
+        ("Temperature", temperature, 0.0, 1.0),
+        ("Top-p", top_p, 0.01, 1.0),
+        ("Repetition penalty", repetition_penalty, 1.0, 2.0),
+    ):
+        if (isinstance(value, bool) or not isinstance(value, (int, float))
+                or not math.isfinite(value) or not minimum <= value <= maximum):
+            raise gr.Error(f"{name} must be between {minimum} and {maximum}.")
+
     model = load_model()
 
-    if not text.strip():
-        return None, None
-
     out = model.infer(
-        text,
+        text.strip(),
         temperature=temperature,
         top_p=top_p,
         repetition_penalty=repetition_penalty,
     )
 
-    audio_np = out.cpu().numpy()
-    audio_int16 = (audio_np * 32767).astype(np.int16)
-    return (SAMPLE_RATE, audio_int16), audio_int16
-
-
-def save_audio(state):
-    if state is None or len(state) == 0:
+    audio_np = out.detach().float().cpu().numpy()
+    if audio_np.size == 0:
         return None
-    fd, path = tempfile.mkstemp(suffix=".wav")
-    os.close(fd)
-    wav_write(path, SAMPLE_RATE, state)
-    return path
+    audio_np = np.nan_to_num(audio_np, nan=0.0, posinf=1.0, neginf=-1.0)
+    audio_int16 = (np.clip(audio_np, -1.0, 1.0) * 32767).astype(np.int16)
+    return SAMPLE_RATE, audio_int16
 
 
-with gr.Blocks(title="Soprano TTS") as demo:
-    state_audio = gr.State(None)
+with gr.Blocks(title="Soprano TTS", delete_cache=(3600, 3600)) as demo:
 
     with gr.Row():
         with gr.Column():
@@ -80,7 +81,7 @@ with gr.Blocks(title="Soprano TTS") as demo:
                     0.0, 1.0, value=0.3, step=0.05, label="Temperature"
                 )
                 top_p = gr.Slider(
-                    0.0, 1.0, value=0.95, step=0.01, label="Top-p"
+                    0.01, 1.0, value=0.95, step=0.01, label="Top-p"
                 )
                 repetition_penalty = gr.Slider(
                     1.0, 2.0, value=1.2, step=0.05, label="Repetition penalty"
@@ -93,9 +94,9 @@ with gr.Blocks(title="Soprano TTS") as demo:
                 label="Output Audio",
                 autoplay=True,
                 streaming=False,
+                format="wav",
+                show_download_button=True,
             )
-            download_btn = gr.Button("Download")
-            file_out = gr.File(label="Download file")
             gr.Markdown(
                 "**Usage tips:**\n\n"
                 "- Soprano works best when each sentence is between 2 and 15 seconds long.\n"
@@ -110,15 +111,11 @@ with gr.Blocks(title="Soprano TTS") as demo:
     gen_btn.click(
         fn=tts_generate,
         inputs=[text_in, temperature, top_p, repetition_penalty],
-        outputs=[audio_out, state_audio],
-    )
-
-    download_btn.click(
-        fn=save_audio,
-        inputs=[state_audio],
-        outputs=[file_out],
+        outputs=[audio_out],
+        api_name="generate",
+        concurrency_limit=1,
     )
 
 if __name__ == "__main__":
-    demo.queue()
+    demo.queue(api_open=False)
     demo.launch(server_name="127.0.0.1")
