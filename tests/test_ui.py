@@ -49,6 +49,9 @@ class UITests(unittest.TestCase):
                 fn, [" ", 0.3, 0.95, 1.2]
             ))
             self.assertEqual(empty["data"], [None])
+            for text in ("...", "…", "?", "😀"):
+                with self.subTest(text=text), self.assertRaises(self.app.gr.Error):
+                    asyncio.run(self.app.demo.process_api(fn, [text, 0.3, 0.95, 1.2]))
             loader.assert_not_called()
 
 

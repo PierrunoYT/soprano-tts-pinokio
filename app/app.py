@@ -2,6 +2,8 @@ import gradio as gr
 import torch
 import numpy as np
 from soprano import SopranoTTS
+from soprano.utils.text_normalizer import clean_text
+from soprano.utils.text_splitter import split_and_recombine_text
 import math
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -38,10 +40,15 @@ def tts_generate(text, temperature, top_p, repetition_penalty):
                 or not math.isfinite(value) or not minimum <= value <= maximum):
             raise gr.Error(f"{name} must be between {minimum} and {maximum}.")
 
+    text = text.strip()
+    # Soprano crashes when normalization leaves no sentences (e.g. "..." or emoji).
+    if not split_and_recombine_text(clean_text(text)):
+        raise gr.Error("Input text contains no speakable words.")
+
     model = load_model()
 
     out = model.infer(
-        text.strip(),
+        text,
         temperature=temperature,
         top_p=top_p,
         repetition_penalty=repetition_penalty,

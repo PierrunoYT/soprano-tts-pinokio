@@ -16,8 +16,13 @@ class AudioTests(unittest.TestCase):
             "tts_app", Path(__file__).resolve().parents[1] / "app" / "app.py"
         )
         self.app = importlib.util.module_from_spec(spec)
+        self.splitter = MagicMock(return_value=["hello."])
         with patch.dict(sys.modules, {
-            "gradio": gradio, "torch": MagicMock(), "soprano": MagicMock()
+            "gradio": gradio, "torch": MagicMock(), "soprano": MagicMock(),
+            "soprano.utils": MagicMock(),
+            "soprano.utils.text_normalizer": MagicMock(),
+            "soprano.utils.text_splitter": MagicMock(
+                split_and_recombine_text=self.splitter),
         }):
             spec.loader.exec_module(self.app)
         self.loader = patch.object(self.app, "load_model").start()
@@ -40,6 +45,12 @@ class AudioTests(unittest.TestCase):
                        {"penalty": None}, {"penalty": True}, {"penalty": 3}):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 self.generate(**kwargs)
+        self.loader.assert_not_called()
+
+    def test_unspeakable_input_is_rejected_before_loading_model(self):
+        self.splitter.return_value = []
+        with self.assertRaises(ValueError):
+            self.generate("...")
         self.loader.assert_not_called()
 
     def test_pcm_clips_instead_of_wrapping_and_handles_nonfinite_samples(self):
