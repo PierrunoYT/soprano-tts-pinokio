@@ -40,12 +40,16 @@ class AudioTests(unittest.TestCase):
         self.loader.assert_not_called()
 
     def test_invalid_parameters_do_not_load_model(self):
-        for kwargs in ({"text": 3}, {"top_p": 0}, {"top_p": float("nan")},
+        for kwargs in ({"text": 3}, {"text": "a" * 5001}, {"top_p": 0}, {"top_p": float("nan")},
                        {"temperature": -1}, {"temperature": float("inf")},
                        {"penalty": None}, {"penalty": True}, {"penalty": 3}):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 self.generate(**kwargs)
         self.loader.assert_not_called()
+
+    def test_text_at_length_limit_is_accepted(self):
+        self.output([0.0])
+        self.assertIsNotNone(self.generate(" " + "a" * 5000 + " "))
 
     def test_unspeakable_input_is_rejected_before_loading_model(self):
         self.splitter.return_value = []

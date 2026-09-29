@@ -24,6 +24,8 @@ def load_model():
 
 
 SAMPLE_RATE = 32000
+# Soprano generates every sentence in one batch, so memory grows with input length.
+MAX_TEXT_LENGTH = 5000
 
 
 def tts_generate(text, temperature, top_p, repetition_penalty):
@@ -41,6 +43,8 @@ def tts_generate(text, temperature, top_p, repetition_penalty):
             raise gr.Error(f"{name} must be between {minimum} and {maximum}.")
 
     text = text.strip()
+    if len(text) > MAX_TEXT_LENGTH:
+        raise gr.Error(f"Input text must be at most {MAX_TEXT_LENGTH} characters.")
     # Soprano crashes when normalization leaves no sentences (e.g. "..." or emoji).
     if not split_and_recombine_text(clean_text(text)):
         raise gr.Error("Input text contains no speakable words.")
@@ -80,6 +84,7 @@ with gr.Blocks(title="Soprano TTS", delete_cache=(3600, 3600)) as demo:
                 placeholder="Enter text to synthesize...",
                 value="Soprano is an extremely lightweight text to speech model designed to produce highly realistic speech at unprecedented speed.",
                 lines=4,
+                max_length=MAX_TEXT_LENGTH,
             )
 
             with gr.Accordion("Advanced options", open=False):

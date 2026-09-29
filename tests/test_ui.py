@@ -28,6 +28,7 @@ class UITests(unittest.TestCase):
         self.assertEqual(len(endpoint["parameters"]), 4)
         self.assertEqual(len(endpoint["returns"]), 1)
         self.assertTrue(self.app.audio_out.show_download_button)
+        self.assertEqual(self.app.text_in.max_length, self.app.MAX_TEXT_LENGTH)
         self.assertFalse(self.app.demo.api_open)
 
     def test_generation_produces_downloadable_wav_and_blank_input_clears_it(self):

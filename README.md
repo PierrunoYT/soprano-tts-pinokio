@@ -74,7 +74,7 @@ if you want to manage that environment through Pinokio.
 ## API
 
 The running UI exposes a queued Gradio endpoint named `/generate`, with inputs in
-this order: `text`, `temperature` (0–1), `top_p` (0.01–1), and
+this order: `text` (at most 5000 characters), `temperature` (0–1), `top_p` (0.01–1), and
 `repetition_penalty` (1–2). Requests share a single inference queue. The response
 contains one audio file; blank text returns no audio. There is no separate
 download API or session-state argument.
