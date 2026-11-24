@@ -45,8 +45,16 @@ def tts_generate(text, temperature, top_p, repetition_penalty):
     text = text.strip()
     if len(text) > MAX_TEXT_LENGTH:
         raise gr.Error(f"Input text must be at most {MAX_TEXT_LENGTH} characters.")
-    # Soprano crashes when normalization leaves no sentences (e.g. "..." or emoji).
-    if not split_and_recombine_text(clean_text(text)):
+    # Soprano crashes when normalization leaves no sentences (e.g. "..." or emoji),
+    # and its number normalizer raises on numbers with too many digits.
+    try:
+        sentences = split_and_recombine_text(clean_text(text))
+    except Exception as exc:
+        raise gr.Error(
+            "Input text could not be normalized for speech; "
+            "spell out very long numbers."
+        ) from exc
+    if not sentences:
         raise gr.Error("Input text contains no speakable words.")
 
     model = load_model()
